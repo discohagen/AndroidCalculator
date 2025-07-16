@@ -2,11 +2,13 @@ package com.example.myapplication.view
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -22,14 +24,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.viewmodel.CalculatorState
 import com.example.myapplication.viewmodel.CalculatorViewModel
 
 const val columnCount = 4
 const val rowCount = 4
 val backgroundColor: Color = Color(0xff404040)
 val buttonBackgroundColor: Color = Color(0xffb06000)
+val displayBackgroundColor: Color = Color(0xff505050)
 val textColor: Color = Color(0xffffffff)
+
+// TODO: Calculation History
+// TODO: Dark and Light Theme
 
 @Preview
 @Composable
@@ -64,7 +69,22 @@ fun CalculatorView(
 
 @Composable
 fun Display(text: String) {
-    Text(text = text, color = textColor)
+    Box(
+        modifier = Modifier
+            .padding(20.dp)
+            .background(color = displayBackgroundColor)
+            .fillMaxWidth()
+            .height(60.dp),
+        contentAlignment = Alignment.Center
+    )
+    {
+        Text(
+            modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+            text = text,
+            color = textColor,
+            fontSize = 34.sp
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

@@ -80,6 +80,10 @@ class CalculatorViewModel : ViewModel() {
 
     }
 
+    //TODO: Improve evaluate to accept multiple Operators
+    //TODO: Improve evaluate to do multiplying and dividing before plus and minus
+    //TODO: Catch Errors and Edge-Cases (Number Overflows, Validation)
+
     private fun evaluate(expression: String): String {
         if (expression.isEmpty()) return "Error: No Expression to evaluate"
 
