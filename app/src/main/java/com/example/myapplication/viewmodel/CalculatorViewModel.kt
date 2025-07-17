@@ -1,6 +1,7 @@
 package com.example.myapplication.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.example.myapplication.model.CalculatorState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +14,12 @@ const val equals = "="
 class CalculatorViewModel : ViewModel() {
     private val _calculatorState = MutableStateFlow(CalculatorState())
     val calculatorState: StateFlow<CalculatorState> = _calculatorState.asStateFlow()
+
+    fun toggleHistoryDialogue() {
+        _calculatorState.value = _calculatorState.value.copy(
+            isHistoryShown = !_calculatorState.value.isHistoryShown
+        )
+    }
 
     fun onButtonClick(newSymbol: String) {
         if (newSymbol.isEmpty()) {
@@ -66,9 +73,13 @@ class CalculatorViewModel : ViewModel() {
             }
 
             isNewSymbolEquals -> {
+                val res = evaluate(calculatorState.value.input)
                 _calculatorState.value = _calculatorState.value.copy(
-                    result = evaluate(calculatorState.value.input)
+                    result = res
                 )
+                if (!res.startsWith("Error")) {
+                    _calculatorState.value.history.add("${_calculatorState.value.input} = $res")
+                }
             }
 
             else -> {
@@ -80,42 +91,90 @@ class CalculatorViewModel : ViewModel() {
 
     }
 
-    //TODO: Improve evaluate to accept multiple Operators
-    //TODO: Improve evaluate to do multiplying and dividing before plus and minus
+    //TODO: Allow unary minus
+    //TODO: Allow Floats
     //TODO: Catch Errors and Edge-Cases (Number Overflows, Validation)
 
     private fun evaluate(expression: String): String {
-        if (expression.isEmpty()) return "Error: No Expression to evaluate"
+        if (expression.isEmpty()) return "Error: Invalid Expression"
 
-        if (expression.count { it in operators } != 1) return "Error: Exactly one Operator needed"
+        if (!numbers.contains(expression.first())) return "Error: Invalid Expression"
 
-        if (!numbers.contains(expression.first())) return "Error: First Character needs to be a Number"
+        if (!numbers.contains(expression.last())) return "Error: Invalid Expression"
 
-        if (!numbers.contains(expression.last())) return "Error: Last Character needs to be a Number"
+        var currNumber = ""
+        val tokenList = emptyList<String>().toMutableList()
 
-        when {
-            expression.contains("+") -> {
-                val numberList = expression.split("+")
-                return (numberList[0].toInt() + numberList[1].toInt()).toString()
-            }
-
-            expression.contains("-") -> {
-                val numberList = expression.split("-")
-                return (numberList[0].toInt() - numberList[1].toInt()).toString()
-            }
-
-            expression.contains("*") -> {
-                val numberList = expression.split("*")
-                return (numberList[0].toInt() * numberList[1].toInt()).toString()
-            }
-
-            expression.contains("/") -> {
-                val numberList = expression.split("/")
-                if (numberList[1].toInt() == 0) return "Error: Dividing by Zero"
-                return (numberList[0].toInt() / numberList[1].toInt()).toString()
+        val e = expression.iterator()
+        while (e.hasNext()) {
+            val curr = e.next()
+            if (numbers.contains(curr)) {
+                currNumber += curr
+            } else if (operators.contains(curr)) {
+                if (currNumber.isNotEmpty()) {
+                    tokenList.add(currNumber)
+                    currNumber = ""
+                }
+                tokenList.add(curr.toString())
             }
         }
+        if (currNumber.isNotEmpty()) tokenList.add(currNumber)
 
-        return "Error: Unexpected Error"
+        // primary: "*", "/"
+        // secondary: "+", "-"
+
+        try {
+            while (tokenList.count() > 1) {
+                val indexOfFirstPrimaryOperator =
+                    tokenList.indexOfFirst { token -> token == "*" || token == "/" }
+                if (indexOfFirstPrimaryOperator != -1) {
+                    when (tokenList[indexOfFirstPrimaryOperator]) {
+                        "*" -> {
+                            val res =
+                                tokenList[indexOfFirstPrimaryOperator - 1].toInt() * tokenList[indexOfFirstPrimaryOperator + 1].toInt()
+                            tokenList[indexOfFirstPrimaryOperator - 1] = res.toString();
+                            tokenList.removeAt(indexOfFirstPrimaryOperator + 1)
+                            tokenList.removeAt(indexOfFirstPrimaryOperator)
+                        }
+
+                        "/" -> {
+                            if (tokenList[indexOfFirstPrimaryOperator + 1].toInt() == 0) throw Error(
+                                "Zero Division"
+                            )
+                            val res =
+                                tokenList[indexOfFirstPrimaryOperator - 1].toInt() / tokenList[indexOfFirstPrimaryOperator + 1].toInt()
+                            tokenList[indexOfFirstPrimaryOperator - 1] = res.toString();
+                            tokenList.removeAt(indexOfFirstPrimaryOperator + 1)
+                            tokenList.removeAt(indexOfFirstPrimaryOperator)
+                        }
+                    }
+                } else {
+                    val indexOfFirstSecondaryOperator =
+                        tokenList.indexOfFirst { token -> token == "+" || token == "-" }
+                    when (tokenList[indexOfFirstSecondaryOperator]) {
+                        "+" -> {
+                            val res =
+                                tokenList[indexOfFirstSecondaryOperator - 1].toInt() + tokenList[indexOfFirstSecondaryOperator + 1].toInt()
+                            tokenList[indexOfFirstSecondaryOperator - 1] = res.toString();
+                            tokenList.removeAt(indexOfFirstSecondaryOperator + 1)
+                            tokenList.removeAt(indexOfFirstSecondaryOperator)
+                        }
+
+                        "-" -> {
+                            val res =
+                                tokenList[indexOfFirstSecondaryOperator - 1].toInt() - tokenList[indexOfFirstSecondaryOperator + 1].toInt()
+                            tokenList[indexOfFirstSecondaryOperator - 1] = res.toString();
+                            tokenList.removeAt(indexOfFirstSecondaryOperator + 1)
+                            tokenList.removeAt(indexOfFirstSecondaryOperator)
+                        }
+                    }
+                }
+
+            }
+        } catch (e: Error) {
+            return "Error: $e"
+        }
+
+        return tokenList[0]
     }
 }

@@ -2,10 +2,35 @@ package com.example.myapplication.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// dark theme
+val dark_backgroundColor: Color = Color(0xff404040)
+val dark_buttonBackgroundColor: Color = Color(0xffb06000)
+val dark_displayBackgroundColor: Color = Color(0xff505050)
+val dark_textColor: Color = Color(0xffffffff)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// light theme
+val light_backgroundColor: Color = Color(0xffffffff)
+val light_buttonBackgroundColor: Color = Color(0xffffa040)
+val light_displayBackgroundColor: Color = Color(0xfff0f0f0)
+val light_textColor: Color = Color(0xff000000)
+
+sealed class ThemeColors(
+    val background: Color,
+    val button: Color,
+    val display: Color,
+    val text: Color
+) {
+    data object Dark : ThemeColors(
+        background = dark_backgroundColor,
+        button = dark_buttonBackgroundColor,
+        display = dark_displayBackgroundColor,
+        text = dark_textColor
+    )
+
+    data object Light : ThemeColors(
+        background = light_backgroundColor,
+        button = light_buttonBackgroundColor,
+        display = light_displayBackgroundColor,
+        text = light_textColor
+    )
+}

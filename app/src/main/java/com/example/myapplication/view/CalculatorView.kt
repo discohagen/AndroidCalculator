@@ -6,35 +6,41 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.model.CalculatorState
 import com.example.myapplication.viewmodel.CalculatorViewModel
 
 const val columnCount = 4
 const val rowCount = 4
-val backgroundColor: Color = Color(0xff404040)
-val buttonBackgroundColor: Color = Color(0xffb06000)
-val displayBackgroundColor: Color = Color(0xff505050)
-val textColor: Color = Color(0xffffffff)
 
 // TODO: Calculation History
-// TODO: Dark and Light Theme
+// TODO: Holding C turns C to AC (turns red) and deletes whole input
+// TODO: Launch Screen
 
 @Preview
 @Composable
@@ -45,11 +51,17 @@ fun CalculatorView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = backgroundColor)
+            .background(color = MaterialTheme.colorScheme.background)
             .padding(bottom = 30.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom
     ) {
+        Button(calculatorViewModel::toggleHistoryDialogue) {
+            Text("History")
+        }
+        if (calculatorState.isHistoryShown) {
+            HistoryDialogue(calculatorState, calculatorViewModel::toggleHistoryDialogue)
+        }
         Display(
             "${
                 calculatorState.input.ifEmpty {
@@ -72,7 +84,8 @@ fun Display(text: String) {
     Box(
         modifier = Modifier
             .padding(20.dp)
-            .background(color = displayBackgroundColor)
+            .clip(shape = RoundedCornerShape(20.dp))
+            .background(color = MaterialTheme.colorScheme.tertiary)
             .fillMaxWidth()
             .height(60.dp),
         contentAlignment = Alignment.Center
@@ -81,7 +94,7 @@ fun Display(text: String) {
         Text(
             modifier = Modifier.padding(start = 10.dp, end = 10.dp),
             text = text,
-            color = textColor,
+            color = MaterialTheme.colorScheme.primary,
             fontSize = 34.sp
         )
     }
@@ -112,8 +125,53 @@ fun ButtonPad(
                         .size(90.dp)
                         .padding(5.dp),
                     onClick = { onButtonClick(text) },
-                    colors = ButtonDefaults.buttonColors(containerColor = buttonBackgroundColor)
-                ) { Text(fontSize = 18.sp, text = text) }
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Text(
+                        fontSize = 18.sp,
+                        text = text,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HistoryDialogue(
+    state: CalculatorState,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.tertiary
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        fontSize = 30.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        text = "History"
+                    )
+                    Button(modifier = Modifier, onClick = onDismiss) {
+                        Text("Close")
+                    }
+                }
+                state.history.forEach { e ->
+                    Text(text = e, color = MaterialTheme.colorScheme.primary)
+                }
             }
         }
     }
