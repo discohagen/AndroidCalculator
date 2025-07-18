@@ -91,90 +91,151 @@ class CalculatorViewModel : ViewModel() {
 
     }
 
-    //TODO: Allow unary minus
-    //TODO: Allow Floats
     //TODO: Catch Errors and Edge-Cases (Number Overflows, Validation)
 
     private fun evaluate(expression: String): String {
-        if (expression.isEmpty()) return "Error: Invalid Expression"
+        val tokens = tokenize(expression)
+        val postfix = toPostfix(tokens)
+        return evaluatePostfix(postfix)
+    }
 
-        if (!numbers.contains(expression.first())) return "Error: Invalid Expression"
+    private fun tokenize(expression: String): MutableList<String> {
+        val tokens = emptyList<String>().toMutableList()
+        val chars = expression.toList()
+        var i = 0
 
-        if (!numbers.contains(expression.last())) return "Error: Invalid Expression"
-
-        var currNumber = ""
-        val tokenList = emptyList<String>().toMutableList()
-
-        val e = expression.iterator()
-        while (e.hasNext()) {
-            val curr = e.next()
-            if (numbers.contains(curr)) {
-                currNumber += curr
-            } else if (operators.contains(curr)) {
-                if (currNumber.isNotEmpty()) {
-                    tokenList.add(currNumber)
-                    currNumber = ""
+        while (i < chars.size) {
+            when (chars[i]) {
+                ' ' -> {
+                    i += 1
                 }
-                tokenList.add(curr.toString())
-            }
-        }
-        if (currNumber.isNotEmpty()) tokenList.add(currNumber)
 
-        // primary: "*", "/"
-        // secondary: "+", "-"
-
-        try {
-            while (tokenList.count() > 1) {
-                val indexOfFirstPrimaryOperator =
-                    tokenList.indexOfFirst { token -> token == "*" || token == "/" }
-                if (indexOfFirstPrimaryOperator != -1) {
-                    when (tokenList[indexOfFirstPrimaryOperator]) {
-                        "*" -> {
-                            val res =
-                                tokenList[indexOfFirstPrimaryOperator - 1].toInt() * tokenList[indexOfFirstPrimaryOperator + 1].toInt()
-                            tokenList[indexOfFirstPrimaryOperator - 1] = res.toString();
-                            tokenList.removeAt(indexOfFirstPrimaryOperator + 1)
-                            tokenList.removeAt(indexOfFirstPrimaryOperator)
-                        }
-
-                        "/" -> {
-                            if (tokenList[indexOfFirstPrimaryOperator + 1].toInt() == 0) throw Error(
-                                "Zero Division"
-                            )
-                            val res =
-                                tokenList[indexOfFirstPrimaryOperator - 1].toInt() / tokenList[indexOfFirstPrimaryOperator + 1].toInt()
-                            tokenList[indexOfFirstPrimaryOperator - 1] = res.toString();
-                            tokenList.removeAt(indexOfFirstPrimaryOperator + 1)
-                            tokenList.removeAt(indexOfFirstPrimaryOperator)
-                        }
+                in '0'..'9', '.' -> {
+                    val start = i
+                    while (i < chars.size && (chars[i].isDigit() || chars[i] == '.')) {
+                        i += 1
                     }
-                } else {
-                    val indexOfFirstSecondaryOperator =
-                        tokenList.indexOfFirst { token -> token == "+" || token == "-" }
-                    when (tokenList[indexOfFirstSecondaryOperator]) {
-                        "+" -> {
-                            val res =
-                                tokenList[indexOfFirstSecondaryOperator - 1].toInt() + tokenList[indexOfFirstSecondaryOperator + 1].toInt()
-                            tokenList[indexOfFirstSecondaryOperator - 1] = res.toString();
-                            tokenList.removeAt(indexOfFirstSecondaryOperator + 1)
-                            tokenList.removeAt(indexOfFirstSecondaryOperator)
-                        }
+                    tokens.add(chars.subList(start, i).joinToString(""))
+                }
 
-                        "-" -> {
-                            val res =
-                                tokenList[indexOfFirstSecondaryOperator - 1].toInt() - tokenList[indexOfFirstSecondaryOperator + 1].toInt()
-                            tokenList[indexOfFirstSecondaryOperator - 1] = res.toString();
-                            tokenList.removeAt(indexOfFirstSecondaryOperator + 1)
-                            tokenList.removeAt(indexOfFirstSecondaryOperator)
+                '+', '*', '/', '(', ')' -> {
+                    tokens.add(chars[i].toString())
+                    i += 1
+                }
+
+                '-' -> {
+                    val isUnary =
+                        tokens.isEmpty() || tokens.lastOrNull() in listOf("(", "+", "-", "*", "/")
+
+                    if (isUnary) {
+                        i += 1
+                        if (i < chars.size && (chars[i].isDigit() || chars[i] == '.')) {
+                            val start = i
+                            while (i < chars.size && (chars[i].isDigit() || chars[i] == '.')) {
+                                i += 1
+                            }
+                            val number = chars.subList(start, i).joinToString("")
+                            tokens.add("-$number")
+                        } else {
+                            throw Error("Invalid unary minus")
                         }
+                    } else {
+                        tokens.add("-")
+                        i += 1
                     }
                 }
 
+                else -> {
+                    throw Error("Unexpected character: ${chars[i]}")
+                }
             }
-        } catch (e: Error) {
-            return "Error: $e"
         }
 
-        return tokenList[0]
+        return tokens
+    }
+
+    private fun toPostfix(tokens: MutableList<String>): MutableList<String> {
+        val output = emptyList<String>().toMutableList()
+        val operators = emptyList<String>().toMutableList()
+        val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2)
+
+        for (token in tokens) {
+            if (token.toDoubleOrNull() != null) {
+                output.add(token)
+            } else if (token in "+-*/") {
+                while (operators.lastOrNull() != null) {
+                    val top = operators.last()
+                    if (top == "(") break
+
+                    val precedence1 = precedence[token] ?: 0
+                    val precedence2 = precedence[top] ?: 0
+
+                    if (precedence1 <= precedence2) {
+                        output.add(operators.removeAt(operators.size - 1))
+                    } else {
+                        break
+                    }
+                }
+                operators.add(token)
+            } else if (token == "(") {
+                operators.add(token)
+            } else if (token == ")") {
+                while (operators.isNotEmpty()) {
+                    val top = operators.removeAt(operators.size - 1)
+                    if (top == "(") {
+                        break
+                    } else {
+                        output.add(top)
+                    }
+                }
+            } else {
+                throw Error("Unknown token: $token")
+            }
+        }
+
+        while (operators.isNotEmpty()) {
+            val operator = operators.removeAt(operators.size - 1)
+            if (operator == "(") {
+                throw Error("Mismatched parentheses")
+            }
+            output.add(operator)
+        }
+
+        return output
+    }
+
+    private fun evaluatePostfix(postfix: MutableList<String>): String {
+        val stack = emptyList<Double>().toMutableList()
+
+        for (token in postfix) {
+            val number = token.toDoubleOrNull()
+            if (number != null) {
+                stack.add(number)
+            } else if (token in "+-*/") {
+                if (stack.size < 2) {
+                    throw Error("Not enough operands")
+                }
+                val b = stack.removeAt(stack.size - 1)
+                val a = stack.removeAt(stack.size - 1)
+                val result = when (token) {
+                    "+" -> a + b
+                    "-" -> a - b
+                    "*" -> a * b
+                    "/" -> {
+                        if (b == 0.0) throw Error("Division by zero")
+                        a / b
+                    }
+
+                    else -> throw Error("Invalid operator: $token")
+                }
+                stack.add(result)
+            } else {
+                throw Error("Unknown token: $token")
+            }
+        }
+
+        if (stack.size != 1) throw Error("Invalid expression")
+
+        return stack[0].toString()
     }
 }
