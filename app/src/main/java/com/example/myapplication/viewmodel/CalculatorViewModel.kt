@@ -238,4 +238,13 @@ class CalculatorViewModel : ViewModel() {
 
         return stack[0].toString()
     }
+    fun onLongClick(newSymbol : String) {
+        if (newSymbol == "C") {
+            _calculatorState.value = _calculatorState.value.copy(
+                input = "",
+                result = ""
+            )
+        }
+        
+    }
 }

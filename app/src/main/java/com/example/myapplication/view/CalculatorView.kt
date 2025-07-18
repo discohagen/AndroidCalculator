@@ -1,6 +1,8 @@
 package com.example.myapplication.view
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,10 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,7 +76,7 @@ fun CalculatorView(
                 }
             }"
         )
-        ButtonPad(calculatorViewModel::onButtonClick)
+        ButtonPad(calculatorViewModel::onButtonClick , calculatorViewModel::onLongClick  )
     }
 }
 
@@ -100,10 +101,11 @@ fun Display(text: String) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun ButtonPad(
-    onButtonClick: (String) -> Unit
+    onButtonClick: (String) -> Unit,
+    onLongClick: (String) -> Unit
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -120,13 +122,16 @@ fun ButtonPad(
 
         buttonTexts.forEach { buttonTextRow ->
             buttonTextRow.forEach { text ->
-                Button(
+                Box(
                     modifier = Modifier
+                        .combinedClickable(onClick = {onButtonClick(text)}, onLongClick = {onLongClick(text)} )
                         .size(90.dp)
-                        .padding(5.dp),
-                    onClick = { onButtonClick(text) },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) {
+                        .padding(5.dp)
+                        .clip( shape = CircleShape)
+                        .background( color = MaterialTheme.colorScheme.secondary),
+                        contentAlignment = Alignment.Center)
+
+                     {
                     Text(
                         fontSize = 18.sp,
                         text = text,
